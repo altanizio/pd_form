@@ -204,8 +204,6 @@ if st.session_state.iniciado:
             st.write("Por favor, selecione uma opção.")
 
     else:
-        st.success("Você completou todos os cartões!")
-
         df_resultado = (
             pd.DataFrame.from_dict(
                 st.session_state.respostas, orient="index", columns=["Escolha"]
@@ -228,21 +226,22 @@ if st.session_state.iniciado:
 
         st.dataframe(df_resultado)
 
-        if st.button("Salvar respostas", type="secondary", use_container_width=True):
-            buffer = io.BytesIO()
-            with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-                df_resultado.to_excel(writer, sheet_name="Respostas", index=False)
+        st.success(
+            "Você completou todos os cartões! Baixe os resultados no botão abaixo."
+        )
 
-            st.success("Respostas salvas com sucesso!")
+        buffer = io.BytesIO()
+        with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+            df_resultado.to_excel(writer, sheet_name="Respostas", index=False)
 
-            st.download_button(
-                label="📥 Baixar respostas em Excel",
-                data=buffer.getvalue(),
-                file_name=f"respostas_{nome.replace(' ', '_')}.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-                type="secondary",
-                use_container_width=True,
-            )
+        st.download_button(
+            label="📥 Baixar respostas em Excel",
+            data=buffer.getvalue(),
+            file_name=f"respostas_{nome.replace(' ', '_')}.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            type="secondary",
+            use_container_width=True,
+        )
 
         idx_atual = conjuntos.index(st.session_state["batch"])
         proximo_idx = (idx_atual + 1) % len(conjuntos)
