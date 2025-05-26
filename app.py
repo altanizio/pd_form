@@ -111,6 +111,12 @@ if st.session_state.iniciado:
             index="Variável", columns="option", values="Nível"
         )
 
+        ordem_var = ["Custo", "Tempo", "Confiabilidade", "Flexibilidade", "Segurança"]
+        df_pivot.index = pd.CategoricalIndex(
+            df_pivot.index, categories=ordem_var, ordered=True
+        )
+        df_pivot = df_pivot.sort_index()
+
         col1, col2 = st.columns(2)
 
         with col1:
