@@ -21,13 +21,62 @@ custo = pd.read_excel("experimento_nao_rotulado_rev01.xlsx", sheet_name="Custo")
 tempo = pd.read_excel("experimento_nao_rotulado_rev01.xlsx", sheet_name="Tempo")
 
 
-st.title("Formulário de Preferência Declarada")
-st.header("Informações do Participante")
+st.title("Formulário para Pesquisa de Preferência Declarada")
 
-nome = st.text_input("Nome completo do entrevistado")
+nome = st.text_input("Nome completo do entrevistado", key="nome")
+
+st.header(
+    "Em relação ao principal produto expedido pela empresa (o com maior movimentação anual em peso), responda as seguintes questões:"
+)
+
+produto = st.text_input("1. Qual o produto?", key="produto")
+
+modos_utilizados = st.multiselect(
+    "2. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um.",
+    [
+        "Rodoviário",
+        "Ferroviário",
+        "Portuário",
+        "Hidroviário",
+        "Aeroviário",
+        "Dutoviário",
+        "Outro",
+    ],
+    key="modos_utilizados",
+)
+
+modo_outro = ""
+if "Outro" in modos_utilizados:
+    modo_outro = st.text_input("Qual outro modo?", key="modo_outro")
+
+motivo_uso = st.text_area("3. Por que você utiliza esse modo?", key="motivo_uso")
+
+modos_nao_usaria = st.multiselect(
+    "4. Existe algum modo que você **não usaria** para fazer o transporte desse produto, independentemente de tempo, custo, confiabilidade, flexibilidade e segurança? Se sim, por quê?",
+    [
+        "Rodoviário",
+        "Ferroviário",
+        "Portuário",
+        "Hidroviário",
+        "Aeroviário",
+        "Dutoviário",
+        "Outro",
+    ],
+    key="modos_nao_usaria",
+)
+
+nao_usaria_outro = ""
+if "Outro" in modos_nao_usaria:
+    nao_usaria_outro = st.text_input(
+        "Qual outro modo você não usaria?", key="nao_usaria_outro"
+    )
+
+motivo_nao_usaria = st.text_area(
+    "Por que você não usaria esse(s) modo(s)?", key="motivo_nao_usaria"
+)
 
 custo_atual = st.selectbox(
-    "Custo atual de transporte (R$ por tonelada):",
+    "5. Qual a faixa de custo de transporte?",
     [
         "Até R$ 50 por tonelada",
         "Entre R$ 50 e R$ 100 por tonelada",
@@ -36,11 +85,15 @@ custo_atual = st.selectbox(
         "Entre R$ 500 e R$ 1000 por tonelada",
         "Acima de R$ 1000 por tonelada",
     ],
+    key="custo_atual",
 )
+
 distancia = st.selectbox(
-    "Distância média percorrida pela carga (km):",
+    "6. Qual a faixa de distância de transporte em quilômetros?",
     ["Até 100", "100–300", "300–500", "500–1000", "Acima de 1000"],
+    key="distancia",
 )
+
 
 conjuntos = []
 with open("conjuntos.txt", "r", encoding="utf-8") as f:
@@ -79,7 +132,7 @@ if "iniciado" not in st.session_state:
     st.session_state.iniciado = False
 
 if not st.session_state.iniciado:
-    if st.button("Iniciar experimento"):
+    if st.button("Iniciar experimento", type="secondary", use_container_width=True):
         st.session_state.iniciado = True
         st.rerun()
 
@@ -135,14 +188,20 @@ if st.session_state.iniciado:
             conteudo_b += "</div>"
             st.markdown(conteudo_b, unsafe_allow_html=True)
 
+        opcoes = ["Selecione uma opção", "A", "B"]
+
         escolha = st.radio(
-            "Qual opção você prefere?", options=["A", "B"], key=f"cartao_{cartao}"
+            "Qual opção você prefere?", options=opcoes, key=f"cartao_{cartao}"
         )
 
-        if st.button("Próximo"):
-            st.session_state.respostas[cartao] = escolha
-            st.session_state.cartao_atual += 1
-            st.rerun()
+        if escolha != "Selecione uma opção":
+            st.write(f"Você escolheu: {escolha}")
+            if st.button("Próximo", type="secondary", use_container_width=True):
+                st.session_state.respostas[cartao] = escolha
+                st.session_state.cartao_atual += 1
+                st.rerun()
+        else:
+            st.write("Por favor, selecione uma opção.")
 
     else:
         st.success("Você completou todos os cartões!")
@@ -156,27 +215,64 @@ if st.session_state.iniciado:
         )
 
         df_resultado.insert(0, "Nome", nome)
-        df_resultado.insert(1, "Custo Atual", custo_atual)
-        df_resultado.insert(2, "Distância", distancia)
-        df_resultado.insert(3, "Conjunto de Cartões", str(batch_escolha))
+        df_resultado.insert(1, "Produto Principal", produto)
+        df_resultado.insert(2, "Modos Utilizados", ", ".join(modos_utilizados))
+        df_resultado.insert(3, "Outro Modo (se houver)", modo_outro)
+        df_resultado.insert(4, "Motivo Uso do Modo", motivo_uso)
+        df_resultado.insert(5, "Modos Não Usaria", ", ".join(modos_nao_usaria))
+        df_resultado.insert(6, "Outro Modo Não Usaria", nao_usaria_outro)
+        df_resultado.insert(7, "Motivo Não Usaria", motivo_nao_usaria)
+        df_resultado.insert(8, "Custo Atual", custo_atual)
+        df_resultado.insert(9, "Distância", distancia)
+        df_resultado.insert(10, "Conjunto de Cartões", str(batch_escolha))
 
         st.dataframe(df_resultado)
 
-        if st.button("Salvar respostas"):
+        if st.button("Salvar respostas", type="secondary", use_container_width=True):
             buffer = io.BytesIO()
             with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
                 df_resultado.to_excel(writer, sheet_name="Respostas", index=False)
 
             st.success("Respostas salvas com sucesso!")
 
-            # Botão para o usuário baixar o Excel
             st.download_button(
                 label="📥 Baixar respostas em Excel",
                 data=buffer.getvalue(),
                 file_name=f"respostas_{nome.replace(' ', '_')}.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                type="secondary",
+                use_container_width=True,
             )
 
-        if st.button("Nova pesquisa"):
+        idx_atual = conjuntos.index(st.session_state["batch"])
+        proximo_idx = (idx_atual + 1) % len(conjuntos)
+
+        if st.button("Nova pesquisa", type="primary", use_container_width=True):
             st.session_state.clear()
+
+            st.session_state["batch"] = conjuntos[proximo_idx]
+
+            st.session_state["nome"] = ""
+            st.session_state["produto"] = ""
+            st.session_state["modos_utilizados"] = []
+            st.session_state["modo_outro"] = ""
+            st.session_state["motivo_uso"] = ""
+            st.session_state["modos_nao_usaria"] = []
+            st.session_state["nao_usaria_outro"] = ""
+            st.session_state["motivo_nao_usaria"] = ""
+            st.session_state["custo_atual"] = "Até R$ 50 por tonelada"
+            st.session_state["distancia"] = "Até 100"
+
             st.rerun()
+
+
+st.markdown("---")
+st.markdown(
+    """
+    <div style="text-align: center; font-size: 0.9rem; color: gray;">
+       Formulário para Pesquisa de Preferência Declarada - Consórcio Concremat/Transplan<br>
+        <span style="font-size: 0.8rem;">Versão 1.0.0</span>
+    </div>
+    """,
+    unsafe_allow_html=True,
+)
