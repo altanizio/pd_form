@@ -31,17 +31,18 @@ st.header(
 
 produto = st.text_input("1. Qual o produto? (*)", key="produto")
 
+modos_opcoes = [
+    "Rodoviário",
+    "Ferroviário",
+    "Portuário",
+    "Hidroviário",
+    "Aeroviário",
+    "Dutoviário",
+]
+
 modos_utilizados = st.multiselect(
     "2. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um. (*)",
-    [
-        "Rodoviário",
-        "Ferroviário",
-        "Portuário",
-        "Hidroviário",
-        "Aeroviário",
-        "Dutoviário",
-        "Outro",
-    ],
+    modos_opcoes + ["Outro"],
     key="modos_utilizados",
 )
 
@@ -51,17 +52,11 @@ if "Outro" in modos_utilizados:
 
 motivo_uso = st.text_area("3. Por que você utiliza esse modo? (*)", key="motivo_uso")
 
+modos_filtrados = [modo for modo in modos_opcoes if modo not in modos_utilizados]
+
 modos_nao_usaria = st.multiselect(
     "4. Existe algum modo que você **não usaria** para fazer o transporte desse produto, independentemente de tempo, custo, confiabilidade, flexibilidade e segurança? Se sim, por quê?",
-    [
-        "Rodoviário",
-        "Ferroviário",
-        "Portuário",
-        "Hidroviário",
-        "Aeroviário",
-        "Dutoviário",
-        "Outro",
-    ],
+    modos_filtrados + ["Outro"],
     key="modos_nao_usaria",
 )
 
