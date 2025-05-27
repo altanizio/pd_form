@@ -23,16 +23,16 @@ tempo = pd.read_excel("experimento_nao_rotulado_rev01.xlsx", sheet_name="Tempo")
 
 st.title("Formulário para Pesquisa de Preferência Declarada")
 
-nome = st.text_input("Nome completo do entrevistado", key="nome")
+nome = st.text_input("Nome do entrevistado (*)", key="nome")
 
 st.header(
     "Em relação ao principal produto expedido pela empresa (o com maior movimentação anual em peso), responda as seguintes questões:"
 )
 
-produto = st.text_input("1. Qual o produto?", key="produto")
+produto = st.text_input("1. Qual o produto? (*)", key="produto")
 
 modos_utilizados = st.multiselect(
-    "2. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um.",
+    "2. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um. (*)",
     [
         "Rodoviário",
         "Ferroviário",
@@ -49,7 +49,7 @@ modo_outro = ""
 if "Outro" in modos_utilizados:
     modo_outro = st.text_input("Qual outro modo?", key="modo_outro")
 
-motivo_uso = st.text_area("3. Por que você utiliza esse modo?", key="motivo_uso")
+motivo_uso = st.text_area("3. Por que você utiliza esse modo? (*)", key="motivo_uso")
 
 modos_nao_usaria = st.multiselect(
     "4. Existe algum modo que você **não usaria** para fazer o transporte desse produto, independentemente de tempo, custo, confiabilidade, flexibilidade e segurança? Se sim, por quê?",
@@ -76,7 +76,7 @@ motivo_nao_usaria = st.text_area(
 )
 
 custo_atual = st.selectbox(
-    "5. Qual a faixa de custo de transporte?",
+    "5. Qual a faixa de custo de transporte? (*)",
     [
         "Até R$ 50 por tonelada",
         "Entre R$ 50 e R$ 100 por tonelada",
@@ -89,11 +89,12 @@ custo_atual = st.selectbox(
 )
 
 distancia = st.selectbox(
-    "6. Qual a faixa de distância de transporte em quilômetros?",
+    "6. Qual a faixa de distância de transporte em quilômetros? (*)",
     ["Até 100", "100–300", "300–500", "500–1000", "Acima de 1000"],
     key="distancia",
 )
 
+st.markdown("**Campos com (*) são obrigatórios.**")
 
 conjuntos = []
 with open("conjuntos.txt", "r", encoding="utf-8") as f:
@@ -120,6 +121,18 @@ tempo_i_map = dict(zip(tempo_i["Nível"], tempo_i["Ajuste"]))
 map_valores = custo_i_map | tempo_i_map
 
 
+campos_ok = all(
+    [
+        st.session_state.get("nome", "").strip() != "",
+        st.session_state.get("produto", "").strip() != "",
+        st.session_state.get("modos_utilizados", []) != [],
+        st.session_state.get("motivo_uso", "").strip() != "",
+        st.session_state.get("custo_atual", "").strip() != "",
+        st.session_state.get("distancia", "").strip() != "",
+    ]
+)
+
+
 if "cartao_atual" not in st.session_state:
     st.session_state.cartao_atual = 0
 
@@ -133,8 +146,14 @@ if "iniciado" not in st.session_state:
 
 if not st.session_state.iniciado:
     if st.button("Iniciar experimento", type="secondary", use_container_width=True):
-        st.session_state.iniciado = True
-        st.rerun()
+        if not campos_ok:
+            st.warning(
+                "Preencha todas as perguntas obrigatórias antes de iniciar o experimento."
+            )
+            st.session_state.iniciado = False
+        else:
+            st.session_state.iniciado = True
+            st.rerun()
 
 if st.session_state.iniciado:
     if "cartoes_embaralhados" not in st.session_state:
