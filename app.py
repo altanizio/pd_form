@@ -23,7 +23,7 @@ tempo = pd.read_excel("experimento_nao_rotulado_rev01.xlsx", sheet_name="Tempo")
 
 st.title("Formulário para Pesquisa de Preferência Declarada")
 
-nome = st.text_input("Nome do entrevistado (*)", key="nome")
+nome = st.text_input("Nome da empresa (*)", key="nome")
 
 st.header(
     "Em relação ao principal produto expedido pela empresa (o com maior movimentação anual em peso), responda as seguintes questões:"
