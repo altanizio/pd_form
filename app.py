@@ -6,12 +6,17 @@ from PIL import Image
 from io import BytesIO
 import base64
 
+
+# Configurações da página
+
 st.set_page_config(
     page_title="Meu App",
     page_icon="🧾",
     layout="wide",
     initial_sidebar_state="expanded",
 )
+
+# Leitura dos dados
 
 dados = pd.read_excel(
     "experimento_rev02.xlsx", sheet_name="Codificação", skiprows=1, engine="openpyxl"
@@ -20,20 +25,47 @@ variaveis = dados.columns[1:9]
 colunas = list(dados.columns)
 colunas[1:] = variaveis
 dados.columns = colunas
-
 niveis = pd.read_excel("experimento_rev02.xlsx", sheet_name="Níveis")
 niveis["Variável"] = niveis["Variável"].ffill()
 
+# Formulário
 
 st.title("Formulário para Pesquisa de Preferência Declarada")
 
-nome = st.text_input("Nome da empresa (*)", key="nome")
+st.header("Dados gerais do entrevistado")
+
+nome = st.text_input("1 - Nome (*)", key="nome")
+
+funcao = st.text_input("2 - Função (*)", key="funcao")
+
+telefone = st.text_input("3 - Telefone", key="telefone")
+
+email = st.text_input("4 - E-mail", key="email")
+
+st.header("Características de Logística da Empresa")
+
+tipo_empresa = st.selectbox(
+    "5 - A empresa é um: (*)",
+    [
+        "Embarcador (dono da carga)",
+        "Transportador (prestador de serviços de transporte)",
+        "Operador logístico (gestão e integração de serviços de transporte, armazenagem e distribuição)",
+        "Outro. Qual?",
+    ],
+    key="tipo_empresa",
+)
+
+tipo_empresa_outro = ""
+if "Outro" in tipo_empresa:
+    tipo_empresa_outro = st.text_input(
+        "5.1 - Qual outro tipo?", key="tipo_empresa_outro"
+    )
 
 st.header(
     "Em relação ao principal produto expedido pela empresa (o com maior movimentação anual em peso), responda as seguintes questões:"
 )
 
-produto = st.text_input("1. Qual o produto? (*)", key="produto")
+produto = st.text_input("x. Qual o produto? (*)", key="produto")
 
 modos_opcoes = [
     "Rodoviário",
@@ -54,7 +86,7 @@ modos_opcoes_img = {
 }
 
 modos_utilizados = st.multiselect(
-    "2. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um. (*)",
+    "x. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um. (*)",
     modos_opcoes + ["Outro"],
     key="modos_utilizados",
 )
@@ -63,12 +95,12 @@ modo_outro = ""
 if "Outro" in modos_utilizados:
     modo_outro = st.text_input("Qual outro modo?", key="modo_outro")
 
-motivo_uso = st.text_area("3. Por que você utiliza esse modo? (*)", key="motivo_uso")
+motivo_uso = st.text_area("x. Por que você utiliza esse modo? (*)", key="motivo_uso")
 
 modos_filtrados = [modo for modo in modos_opcoes if modo not in modos_utilizados]
 
 modos_nao_usaria = st.multiselect(
-    "4. Existe algum modo que você **não usaria** para fazer o transporte desse produto, independentemente de tempo, custo, confiabilidade, flexibilidade e segurança? Se sim, por quê?",
+    "x. Existe algum modo que você **não usaria** para fazer o transporte desse produto, independentemente de tempo, custo, confiabilidade, flexibilidade e segurança? Se sim, por quê?",
     modos_filtrados + ["Outro"],
     key="modos_nao_usaria",
 )
@@ -84,13 +116,13 @@ motivo_nao_usaria = st.text_area(
 )
 
 custo = st.number_input(
-    "5. Qual o custo de transporte? (*)",
+    "x. Qual o custo de transporte? (*)",
     min_value=0.00,
     step=0.01,
     key="custo_atual",
 )
 
-st.write("Qual horário você deseja?")
+st.write("Qual o tempo de viagem?")
 
 col1, col2 = st.columns([1, 1])  # duas colunas lado a lado
 
@@ -103,29 +135,12 @@ with col2:
 tempo = hora * 60 + minuto
 
 distancia = st.selectbox(
-    "6. Qual a faixa de distância de transporte em quilômetros? (*)",
+    "x. Qual a faixa de distância de transporte em quilômetros? (*)",
     ["Até 100", "100–300", "300–500", "500–1000", "Acima de 1000"],
     key="distancia",
 )
 
-st.markdown("**Campos com (*) são obrigatórios.**")
-
-
-batch_list = [[1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 14, 15, 16, 17, 18]]
-
-
-campos_ok = all(
-    [
-        st.session_state.get("nome", "").strip() != "",
-        st.session_state.get("produto", "").strip() != "",
-        st.session_state.get("modos_utilizados", []) != [],
-        st.session_state.get("motivo_uso", "").strip() != "",
-        st.session_state.get("custo_atual", 0.0) != 0.0,
-        st.session_state.get("distancia", "").strip() != "",
-    ]
-)
-
-
+# Modos propostos para os cartões B
 modos_propostos = st.multiselect(
     "Modo alternativo (*)",
     modos_filtrados + ["Outro"],
@@ -140,6 +155,25 @@ modos_propostos_img = [
 ]
 
 
+st.markdown("**Campos com (*) são obrigatórios.**")
+
+
+# Cartões
+batch_list = [[1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 14, 15, 16, 17, 18]]
+
+# Verificar campos obrigatórios
+campos_ok = all(
+    [
+        st.session_state.get("nome", "").strip() != "",
+        st.session_state.get("produto", "").strip() != "",
+        st.session_state.get("modos_utilizados", []) != [],
+        st.session_state.get("motivo_uso", "").strip() != "",
+        st.session_state.get("custo_atual", 0.0) != 0.0,
+        st.session_state.get("distancia", "").strip() != "",
+    ]
+)
+
+# PD
 if "cartao_atual" not in st.session_state:
     st.session_state.cartao_atual = 0
 
@@ -271,7 +305,7 @@ if st.session_state.iniciado:
                 <div>
                     <h4 style='margin-top: 0;'>Opção A</h4>
             """
-            # Adiciona os textos
+
             for idx, val in df_pivot["A"].items():
                 conteudo_a += f"<p><strong>{idx}:</strong> {val}</p>"
 
@@ -279,7 +313,6 @@ if st.session_state.iniciado:
                 "</div><div style='display: flex; flex-direction: column; gap: 5px;'>"
             )
 
-            # Adiciona as imagens empilhadas verticalmente
             for img in modos_utilizados_img:
                 conteudo_a += f"<img src='{get_image(img)}' width='60' style='border-radius: 8px; background-color: white;'>"
 
@@ -292,7 +325,7 @@ if st.session_state.iniciado:
                 <div>
                     <h4 style='margin-top: 0;'>Opção B</h4>
             """
-            # Adiciona os textos
+
             for idx, val in df_pivot["B"].items():
                 conteudo_b += f"<p><strong>{idx}:</strong> {val}</p>"
 
@@ -341,6 +374,8 @@ if st.session_state.iniciado:
             .rename(columns={"index": "Cartão"})
         )
 
+        # Variáveis para salvar no formulário
+
         df_resultado.insert(0, "Nome", nome)
         df_resultado.insert(1, "Produto Principal", produto)
         df_resultado.insert(2, "Modos Utilizados", ", ".join(modos_utilizados))
@@ -373,6 +408,7 @@ if st.session_state.iniciado:
         )
 
         if st.button("Nova pesquisa", type="primary", use_container_width=True):
+            # Limpar o formulário para uma nova pesquisa
             st.session_state.clear()
             st.session_state["nome"] = ""
             st.session_state["produto"] = ""
