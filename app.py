@@ -410,16 +410,17 @@ if st.session_state.iniciado:
         if st.button("Nova pesquisa", type="primary", use_container_width=True):
             # Limpar o formulário para uma nova pesquisa
             st.session_state.clear()
-            st.session_state["nome"] = ""
-            st.session_state["produto"] = ""
-            st.session_state["modos_utilizados"] = []
-            st.session_state["modo_outro"] = ""
-            st.session_state["motivo_uso"] = ""
-            st.session_state["modos_nao_usaria"] = []
-            st.session_state["nao_usaria_outro"] = ""
-            st.session_state["motivo_nao_usaria"] = ""
-            st.session_state["custo_atual"] = "Até R$ 50 por tonelada"
-            st.session_state["distancia"] = "Até 100"
+
+            # st.session_state["nome"] = ""
+            # st.session_state["produto"] = ""
+            # st.session_state["modos_utilizados"] = []
+            # st.session_state["modo_outro"] = ""
+            # st.session_state["motivo_uso"] = ""
+            # st.session_state["modos_nao_usaria"] = []
+            # st.session_state["nao_usaria_outro"] = ""
+            # st.session_state["motivo_nao_usaria"] = ""
+            # st.session_state["custo_atual"] = 0
+            # st.session_state["distancia"] = "Até 100"
 
             st.rerun()
 
