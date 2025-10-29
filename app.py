@@ -2,23 +2,27 @@ import streamlit as st
 import pandas as pd
 import numpy as np
 import io
+from PIL import Image
+from io import BytesIO
+import base64
+
+st.set_page_config(
+    page_title="Meu App",
+    page_icon="🧾",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
 
 dados = pd.read_excel(
-    "experimento_nao_rotulado_rev01.xlsx", sheet_name="Codificação", skiprows=1
+    "experimento_rev02.xlsx", sheet_name="Codificação", skiprows=1, engine="openpyxl"
 )
-variaveis = dados.columns[1:6]
-variaveis_A = list(variaveis + "_A")
-variaveis_B = list(variaveis + "_B")
-variaveis = variaveis_A + variaveis_B
+variaveis = dados.columns[1:9]
 colunas = list(dados.columns)
 colunas[1:] = variaveis
 dados.columns = colunas
 
-niveis = pd.read_excel("experimento_nao_rotulado_rev01.xlsx", sheet_name="Níveis")
+niveis = pd.read_excel("experimento_rev02.xlsx", sheet_name="Níveis")
 niveis["Variável"] = niveis["Variável"].ffill()
-
-custo = pd.read_excel("experimento_nao_rotulado_rev01.xlsx", sheet_name="Custo")
-tempo = pd.read_excel("experimento_nao_rotulado_rev01.xlsx", sheet_name="Tempo")
 
 
 st.title("Formulário para Pesquisa de Preferência Declarada")
@@ -39,6 +43,15 @@ modos_opcoes = [
     "Aeroviário",
     "Dutoviário",
 ]
+
+modos_opcoes_img = {
+    "Rodoviário": "imgs/truck.png",
+    "Ferroviário": "imgs/train.png",
+    "Portuário": "imgs/ship.png",
+    "Hidroviário": "imgs/boat.png",
+    "Aeroviário": "imgs/plane.png",
+    "Dutoviário": "imgs/pipe.png",
+}
 
 modos_utilizados = st.multiselect(
     "2. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um. (*)",
@@ -70,18 +83,24 @@ motivo_nao_usaria = st.text_area(
     "Por que você não usaria esse(s) modo(s)?", key="motivo_nao_usaria"
 )
 
-custo_atual = st.selectbox(
-    "5. Qual a faixa de custo de transporte? (*)",
-    [
-        "Até R$ 50 por tonelada",
-        "Entre R$ 50 e R$ 100 por tonelada",
-        "Entre R$ 100 e R$ 250 por tonelada",
-        "Entre R$ 250 e R$ 500 por tonelada",
-        "Entre R$ 500 e R$ 1000 por tonelada",
-        "Acima de R$ 1000 por tonelada",
-    ],
+custo = st.number_input(
+    "5. Qual o custo de transporte? (*)",
+    min_value=0.00,
+    step=0.01,
     key="custo_atual",
 )
+
+st.write("Qual horário você deseja?")
+
+col1, col2 = st.columns([1, 1])  # duas colunas lado a lado
+
+with col1:
+    hora = st.number_input("Hora", min_value=0, max_value=99999, value=1)
+
+with col2:
+    minuto = st.number_input("Minuto", min_value=0, max_value=59, value=0)
+
+tempo = hora * 60 + minuto
 
 distancia = st.selectbox(
     "6. Qual a faixa de distância de transporte em quilômetros? (*)",
@@ -91,29 +110,8 @@ distancia = st.selectbox(
 
 st.markdown("**Campos com (*) são obrigatórios.**")
 
-conjuntos = []
-with open("conjuntos.txt", "r", encoding="utf-8") as f:
-    for linha in f:
-        partes = linha.strip().split(",")
-        conjuntos.append([int(p) for p in partes])
 
-batch_escolha = st.radio("Qual conjunto de cartões?", options=conjuntos, key="batch")
-
-custo_i = (
-    custo.loc[custo["Nível do formulário"] == custo_atual]
-    .melt(id_vars="Nível do formulário", value_name="Ajuste", var_name="Nível")
-    .loc[1:2, ["Nível", "Ajuste"]]
-)
-custo_i_map = dict(zip(custo_i["Nível"], custo_i["Ajuste"]))
-
-tempo_i = (
-    tempo.loc[tempo["Distância (km)"] == distancia]
-    .melt(id_vars="Distância (km)", value_name="Ajuste", var_name="Nível")
-    .loc[:, ["Nível", "Ajuste"]]
-)
-tempo_i_map = dict(zip(tempo_i["Nível"], tempo_i["Ajuste"]))
-
-map_valores = custo_i_map | tempo_i_map
+batch_list = [[1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 14, 15, 16, 17, 18]]
 
 
 campos_ok = all(
@@ -122,10 +120,24 @@ campos_ok = all(
         st.session_state.get("produto", "").strip() != "",
         st.session_state.get("modos_utilizados", []) != [],
         st.session_state.get("motivo_uso", "").strip() != "",
-        st.session_state.get("custo_atual", "").strip() != "",
+        st.session_state.get("custo_atual", 0.0) != 0.0,
         st.session_state.get("distancia", "").strip() != "",
     ]
 )
+
+
+modos_propostos = st.multiselect(
+    "Modo alternativo (*)",
+    modos_filtrados + ["Outro"],
+    key="modos_propostos",
+)
+
+modos_utilizados_img = [
+    modos_opcoes_img[modo] for modo in modos_utilizados if modo in modos_opcoes_img
+]
+modos_propostos_img = [
+    modos_opcoes_img[modo] for modo in modos_propostos if modo in modos_opcoes_img
+]
 
 
 if "cartao_atual" not in st.session_state:
@@ -152,66 +164,169 @@ if not st.session_state.iniciado:
 
 if st.session_state.iniciado:
     if "cartoes_embaralhados" not in st.session_state:
-        st.session_state.cartoes_embaralhados = np.random.permutation(batch_escolha)
+        options = [np.random.permutation(list) for list in batch_list]
+        options = [int(x) for sublist in options for x in sublist]
+        st.session_state.cartoes_embaralhados = options
     cartoes = st.session_state.cartoes_embaralhados
     if i < len(cartoes):
         cartao = cartoes[i]
         st.markdown(f"## Cartão {cartao}")
 
-        option_i_data = dados.loc[dados["Cartão"] == cartao].melt(
+        option_i_data = dados.loc[dados["Cartão"] == cartao].copy()
+
+        option_i_data = option_i_data.melt(
             id_vars="Cartão", value_name="Código", var_name="Variável"
         )
-        option_i_data["option"] = option_i_data["Variável"].apply(lambda x: x[-1])
-        option_i_data["Variável"] = option_i_data["Variável"].apply(lambda x: x[:-2])
-        option_i_data = option_i_data.merge(niveis, how="left")
-        option_i_data["Nível"] = (
-            option_i_data["Nível"].map(map_valores).fillna(option_i_data["Nível"])
+        option_i_data = option_i_data.merge(
+            niveis, on=["Variável", "Código"], how="left"
+        )
+
+        option_i_data["valores"] = option_i_data["Nível"]
+
+        def ajustar_valores(row, custo, tempo):
+            if row["Variável"] in ["Custo A", "Custo B", "Tempo A", "Tempo B"]:
+                row["valores"] += 1
+            if row["Variável"] in ["Custo A", "Custo B"]:
+                row["valores"] *= custo
+            elif row["Variável"] in ["Tempo A", "Tempo B"]:
+                row["valores"] *= tempo
+
+            if row["Variável"] in ["Modo B"]:
+                if cartao > 9:
+                    row["valores"] = ", ".join(modos_utilizados)
+                else:
+                    row["valores"] = ", ".join(modos_propostos)
+            return row
+
+        option_i_data = option_i_data.apply(
+            ajustar_valores, axis=1, custo=custo, tempo=tempo
+        )
+
+        option_i_data["option"] = option_i_data["Variável"].apply(
+            lambda x: x.split()[-1]
+        )
+        option_i_data["Variável"] = option_i_data["Variável"].apply(
+            lambda x: x.split()[0]
         )
 
         def formatar_nivel(row):
             if row["Variável"] == "Custo":
-                return f"R$ {row['Nível']}/tonelada"
-            return row["Nível"]
+                return f"R$ {row['valores']:.2f} (Variação de {row['Nível']:.0%})"
+            elif row["Variável"] == "Tempo":
+                nova_hora = int(row["valores"] // 60)
+                novo_minuto = int(row["valores"] % 60)
+                return f"{nova_hora} hora(s) e {novo_minuto} min (Variação de {row['Nível']:.0%})"
+            return row["valores"]
 
-        option_i_data["Nível"] = option_i_data.apply(formatar_nivel, axis=1)
+        option_i_data["valores"] = option_i_data.apply(formatar_nivel, axis=1)
+
         df_pivot = option_i_data.pivot(
-            index="Variável", columns="option", values="Nível"
+            index="Variável", columns="option", values="valores"
         )
 
-        ordem_var = ["Custo", "Tempo", "Confiabilidade", "Flexibilidade", "Segurança"]
-        df_pivot.index = pd.CategoricalIndex(
+        df_pivot.fillna("como é atualmente", inplace=True)
+
+        ordem_var = [
+            "Modo",
+            "Tempo",
+            "Custo",
+            "Confiabilidade",
+            "Segurança",
+            "Capacidade",
+        ]
+        df_pivot.index = pd.Categorical(
             df_pivot.index, categories=ordem_var, ordered=True
         )
         df_pivot = df_pivot.sort_index()
 
+        map_index = {
+            "Modo": "Modo",
+            "Tempo": "Tempo de Viagem",
+            "Custo": "Custo de Envio",
+            "Confiabilidade": "Confiabilidade",
+            "Segurança": "Segurança",
+            "Capacidade": "Capacidade",
+        }
+
+        df_pivot.index = df_pivot.index.map(map_index)
+
+        df_pivot.loc["Modo", "A"] = ", ".join(modos_utilizados)
+
         col1, col2 = st.columns(2)
 
+        def image_to_base64(img):
+            if img:
+                with BytesIO() as buffer:
+                    img.save(buffer, "PNG")
+                    raw_base64 = base64.b64encode(buffer.getvalue()).decode()
+                return f"data:image/png;base64,{raw_base64}"
+
+        def get_image(url):
+            img = Image.open(url)
+            return image_to_base64(img)
+
         with col1:
-            conteudo_a = "<div style='border: 2px solid #D3D3D3; border-radius: 10px; padding: 15px;'>"
-            conteudo_a += "<h4 style='margin-top: 0;'>Opção A</h4>"
+            conteudo_a = """
+            <div style='border: 2px solid #D3D3D3; border-radius: 10px; padding: 15px; display: flex; gap: 15px; align-items: flex-start;'>
+                <div>
+                    <h4 style='margin-top: 0;'>Opção A</h4>
+            """
+            # Adiciona os textos
             for idx, val in df_pivot["A"].items():
                 conteudo_a += f"<p><strong>{idx}:</strong> {val}</p>"
-            conteudo_a += "</div>"
+
+            conteudo_a += (
+                "</div><div style='display: flex; flex-direction: column; gap: 5px;'>"
+            )
+
+            # Adiciona as imagens empilhadas verticalmente
+            for img in modos_utilizados_img:
+                conteudo_a += f"<img src='{get_image(img)}' width='60' style='border-radius: 8px; background-color: white;'>"
+
+            conteudo_a += "</div></div>"
             st.markdown(conteudo_a, unsafe_allow_html=True)
 
         with col2:
-            conteudo_b = "<div style='border: 2px solid #D3D3D3; border-radius: 10px; padding: 15px;'>"
-            conteudo_b += "<h4 style='margin-top: 0;'>Opção B</h4>"
+            conteudo_b = """
+            <div style='border: 2px solid #D3D3D3; border-radius: 10px; padding: 15px; display: flex; gap: 15px; align-items: flex-start;'>
+                <div>
+                    <h4 style='margin-top: 0;'>Opção B</h4>
+            """
+            # Adiciona os textos
             for idx, val in df_pivot["B"].items():
                 conteudo_b += f"<p><strong>{idx}:</strong> {val}</p>"
-            conteudo_b += "</div>"
+
+            conteudo_b += (
+                "</div><div style='display: flex; flex-direction: column; gap: 5px;'>"
+            )
+
+            if cartao > 9:
+                for img in modos_utilizados_img:
+                    conteudo_b += f"<img src='{get_image(img)}' width='60' style='border-radius: 8px; background-color: white;'>"
+            else:
+                for img in modos_propostos_img:
+                    conteudo_b += f"<img src='{get_image(img)}' width='60' style='border-radius: 8px; background-color: white;'>"
+
+            conteudo_b += "</div></div>"
+
             st.markdown(conteudo_b, unsafe_allow_html=True)
 
-        opcoes = ["Selecione uma opção", "A", "B"]
+        opcoes = ["Selecione uma opção", "A", "B", "Não responder"]
 
         escolha = st.radio(
             "Qual opção você prefere?", options=opcoes, key=f"cartao_{cartao}"
         )
 
-        if escolha != "Selecione uma opção":
+        if escolha != "Selecione uma opção" and escolha != "Não responder":
             st.write(f"Você escolheu: {escolha}")
             if st.button("Próximo", type="secondary", use_container_width=True):
                 st.session_state.respostas[cartao] = escolha
+                st.session_state.cartao_atual += 1
+                st.rerun()
+        elif escolha == "Não responder":
+            st.write("Você escolheu: Não responder")
+            if st.button("Próximo", type="secondary", use_container_width=True):
+                st.session_state.respostas[cartao] = "Não respondeu"
                 st.session_state.cartao_atual += 1
                 st.rerun()
         else:
@@ -234,9 +349,9 @@ if st.session_state.iniciado:
         df_resultado.insert(5, "Modos Não Usaria", ", ".join(modos_nao_usaria))
         df_resultado.insert(6, "Outro Modo Não Usaria", nao_usaria_outro)
         df_resultado.insert(7, "Motivo Não Usaria", motivo_nao_usaria)
-        df_resultado.insert(8, "Custo Atual", custo_atual)
+        df_resultado.insert(8, "Custo Atual", custo)
         df_resultado.insert(9, "Distância", distancia)
-        df_resultado.insert(10, "Conjunto de Cartões", str(batch_escolha))
+        df_resultado.insert(10, "Conjunto de Cartões", str(cartoes))
 
         st.dataframe(df_resultado)
 
@@ -257,14 +372,8 @@ if st.session_state.iniciado:
             use_container_width=True,
         )
 
-        idx_atual = conjuntos.index(st.session_state["batch"])
-        proximo_idx = (idx_atual + 1) % len(conjuntos)
-
         if st.button("Nova pesquisa", type="primary", use_container_width=True):
             st.session_state.clear()
-
-            st.session_state["batch"] = conjuntos[proximo_idx]
-
             st.session_state["nome"] = ""
             st.session_state["produto"] = ""
             st.session_state["modos_utilizados"] = []
@@ -284,7 +393,7 @@ st.markdown(
     """
     <div style="text-align: center; font-size: 0.9rem; color: gray;">
        Formulário para Pesquisa de Preferência Declarada - Consórcio Concremat/Transplan<br>
-        <span style="font-size: 0.8rem;">Versão 1.0.0</span>
+        <span style="font-size: 0.8rem;">Versão 1.1.0</span>
     </div>
     """,
     unsafe_allow_html=True,
