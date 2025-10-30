@@ -10,7 +10,7 @@ import base64
 # Configurações da página
 
 st.set_page_config(
-    page_title="Meu App",
+    page_title="Formulário PD",
     page_icon="🧾",
     layout="centered",
     initial_sidebar_state="expanded",
@@ -28,9 +28,21 @@ dados.columns = colunas
 niveis = pd.read_excel("experimento_rev02.xlsx", sheet_name="Níveis")
 niveis["Variável"] = niveis["Variável"].ffill()
 
+niveis["Nível"] = niveis["Nível"].astype(str)
+
 # Formulário PD
 
 st.title("Formulário para Pesquisa de Preferência Declarada")
+
+editar = st.radio("Deseja editar os níveis?", ["Não", "Sim"], horizontal=True)
+if editar == "Sim":
+    niveis = st.data_editor(
+        niveis,
+        disabled=["Variável", "Código"],
+        key="editor_niveis",
+    )
+    st.success("Edição habilitada. Altere os níveis abaixo")
+
 
 nome = st.text_input("Nome (*)", key="nome")
 
@@ -207,6 +219,7 @@ if st.session_state.iniciado:
 
         def ajustar_valores(row, custo, tempo):
             if row["Variável"] in ["Custo A", "Custo B", "Tempo A", "Tempo B"]:
+                row["valores"] = float(row["valores"])
                 row["valores"] += 1
             if row["Variável"] in ["Custo A", "Custo B"]:
                 row["valores"] *= custo
@@ -233,8 +246,10 @@ if st.session_state.iniciado:
 
         def formatar_nivel(row):
             if row["Variável"] == "Custo":
+                row["Nível"] = float(row["Nível"])
                 return f"R$ {row['valores']:.2f} (Variação de {row['Nível']:.0%})"
             elif row["Variável"] == "Tempo":
+                row["Nível"] = float(row["Nível"])
                 dias = int(row["valores"] // 1440)
                 resto = row["valores"] % 1440
                 horas = int(resto // 60)
