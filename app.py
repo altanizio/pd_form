@@ -29,6 +29,7 @@ niveis = pd.read_excel("experimento_rev02.xlsx", sheet_name="Níveis")
 niveis["Variável"] = niveis["Variável"].ffill()
 
 niveis["Nível"] = niveis["Nível"].astype(str)
+niveis = niveis[["Variável", "Código", "Nível"]]
 
 # Formulário PD
 
@@ -41,7 +42,6 @@ if editar == "Sim":
         disabled=["Variável", "Código"],
         key="editor_niveis",
     )
-    st.success("Edição habilitada. Altere os níveis abaixo")
 
 
 nome = st.text_input("Nome (*)", key="nome")
@@ -407,6 +407,7 @@ if st.session_state.iniciado:
         buffer = io.BytesIO()
         with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
             df_resultado.to_excel(writer, sheet_name="Respostas", index=False)
+            niveis.to_excel(writer, sheet_name="Níveis", index=False)
 
         st.download_button(
             label="📥 Baixar respostas em Excel",
