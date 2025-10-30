@@ -99,7 +99,12 @@ modos_nao_usaria = st.multiselect(
 nao_usaria_outro = ""
 if "Outro" in modos_nao_usaria:
     nao_usaria_outro = st.text_input(
-        "Qual outro modo você não usaria?", key="nao_usaria_outro"
+        "4.1 - Qual outro modo você não usaria?", key="nao_usaria_outro"
+    )
+
+if len(modos_nao_usaria) > 0:
+    motivo_nao_usaria = st.text_area(
+        "4.2 - Por que você não usaria esse(s) modo(s)?", key="motivo_nao_usaria"
     )
 
 
@@ -110,7 +115,7 @@ custo = st.number_input(
     key="custo_atual",
 )
 
-st.write("6 - Qual o tempo de deslocamento dessa carga?")
+st.write("6 - Qual o tempo de deslocamento dessa carga? (*)")
 
 col1, col2, col3 = st.columns([1, 1, 1])  # três colunas lado a lado
 
@@ -118,10 +123,10 @@ with col1:
     dia = st.number_input("Dias", min_value=0, max_value=99999999, value=0)
 
 with col2:
-    hora = st.number_input("Hora", min_value=0, max_value=99999999, value=1)
+    hora = st.number_input("Horas", min_value=0, max_value=99999999, value=0)
 
 with col3:
-    minuto = st.number_input("Minuto", min_value=0, max_value=59, value=0)
+    minuto = st.number_input("Minutos", min_value=0, max_value=59, value=0)
 
 tempo = dia * 24 * 60 + hora * 60 + minuto
 
@@ -373,9 +378,10 @@ if st.session_state.iniciado:
         )
         df_resultado.insert(3, "Modos Não Usaria", ", ".join(modos_nao_usaria))
         df_resultado.insert(4, "Outro Modo Não Usaria", nao_usaria_outro)
-        df_resultado.insert(5, "Custo Total", custo)
-        df_resultado.insert(6, "Tempo de Deslocamento", tempo)
-        df_resultado.insert(7, "Conjunto de Cartões", str(cartoes))
+        df_resultado.insert(5, "Motivo Não Usaria", motivo_nao_usaria)
+        df_resultado.insert(6, "Custo Total", custo)
+        df_resultado.insert(7, "Tempo de Deslocamento", tempo)
+        df_resultado.insert(8, "Conjunto de Cartões", str(cartoes))
 
         st.dataframe(df_resultado)
 
