@@ -12,7 +12,7 @@ import base64
 st.set_page_config(
     page_title="Meu App",
     page_icon="🧾",
-    layout="wide",
+    layout="centered",
     initial_sidebar_state="expanded",
 )
 
@@ -28,79 +28,70 @@ dados.columns = colunas
 niveis = pd.read_excel("experimento_rev02.xlsx", sheet_name="Níveis")
 niveis["Variável"] = niveis["Variável"].ffill()
 
-# Formulário
+# Formulário PD
 
 st.title("Formulário para Pesquisa de Preferência Declarada")
 
-st.header("Dados gerais do entrevistado")
-
-nome = st.text_input("1 - Nome (*)", key="nome")
-
-funcao = st.text_input("2 - Função (*)", key="funcao")
-
-telefone = st.text_input("3 - Telefone", key="telefone")
-
-email = st.text_input("4 - E-mail", key="email")
-
-st.header("Características de Logística da Empresa")
-
-tipo_empresa = st.selectbox(
-    "5 - A empresa é um: (*)",
-    [
-        "Embarcador (dono da carga)",
-        "Transportador (prestador de serviços de transporte)",
-        "Operador logístico (gestão e integração de serviços de transporte, armazenagem e distribuição)",
-        "Outro. Qual?",
-    ],
-    key="tipo_empresa",
-)
-
-tipo_empresa_outro = ""
-if "Outro" in tipo_empresa:
-    tipo_empresa_outro = st.text_input(
-        "5.1 - Qual outro tipo?", key="tipo_empresa_outro"
-    )
+nome = st.text_input("Nome (*)", key="nome")
 
 st.header(
     "Em relação ao principal produto expedido pela empresa (o com maior movimentação anual em peso), responda as seguintes questões:"
 )
 
-produto = st.text_input("x. Qual o produto? (*)", key="produto")
+
+produto = st.text_input("1 - Qual o produto? (*)", key="produto")
 
 modos_opcoes = [
     "Rodoviário",
-    "Ferroviário",
-    "Portuário",
-    "Hidroviário",
     "Aeroviário",
+    "Ferroviário",
+    "Cabotagem",
+    "Hidroviário",
+    "Dutoviário",
+]
+
+modos_baixa_opcoes = [
+    "Rodoviário",
+    "Aeroviário",
+]
+
+modos_alta_opcoes = [
+    "Ferroviário",
+    "Cabotagem",
+    "Hidroviário",
     "Dutoviário",
 ]
 
 modos_opcoes_img = {
     "Rodoviário": "imgs/truck.png",
     "Ferroviário": "imgs/train.png",
-    "Portuário": "imgs/ship.png",
+    "Cabotagem": "imgs/ship.png",
     "Hidroviário": "imgs/boat.png",
     "Aeroviário": "imgs/plane.png",
     "Dutoviário": "imgs/pipe.png",
 }
 
-modos_utilizados = st.multiselect(
-    "x. Qual o modo de transporte utilizado? Se multimodal, marcar mais de um. (*)",
-    modos_opcoes + ["Outro"],
+modos_utilizados = st.selectbox(
+    "2 - Qual o modo de baixa capacidade utilizado? (*)",
+    modos_baixa_opcoes,
     key="modos_utilizados",
 )
 
-modo_outro = ""
-if "Outro" in modos_utilizados:
-    modo_outro = st.text_input("Qual outro modo?", key="modo_outro")
+modos_utilizados = [modos_utilizados]
 
-motivo_uso = st.text_area("x. Por que você utiliza esse modo? (*)", key="motivo_uso")
+# Modos propostos para os cartões B
+modos_propostos = st.selectbox(
+    "3 - Qual o modo de alta capacidade que poderia ser utilizado alternativamente? (*)",
+    modos_alta_opcoes,
+    key="modos_propostos",
+)
+
+modos_propostos = [modos_propostos]
 
 modos_filtrados = [modo for modo in modos_opcoes if modo not in modos_utilizados]
 
 modos_nao_usaria = st.multiselect(
-    "x. Existe algum modo que você **não usaria** para fazer o transporte desse produto, independentemente de tempo, custo, confiabilidade, flexibilidade e segurança? Se sim, por quê?",
+    "4 - Existe algum modo que você não usaria para fazer o transporte desse produto, independentemente de tempo, custo, confiabilidade, flexibilidade e segurança? Se sim, por quê?",
     modos_filtrados + ["Outro"],
     key="modos_nao_usaria",
 )
@@ -111,41 +102,29 @@ if "Outro" in modos_nao_usaria:
         "Qual outro modo você não usaria?", key="nao_usaria_outro"
     )
 
-motivo_nao_usaria = st.text_area(
-    "Por que você não usaria esse(s) modo(s)?", key="motivo_nao_usaria"
-)
 
 custo = st.number_input(
-    "x. Qual o custo de transporte? (*)",
+    "5 - Qual o de custo total de transporte em reais?  (*)",
     min_value=0.00,
     step=0.01,
     key="custo_atual",
 )
 
-st.write("Qual o tempo de viagem?")
+st.write("6 - Qual o tempo de deslocamento dessa carga?")
 
-col1, col2 = st.columns([1, 1])  # duas colunas lado a lado
+col1, col2, col3 = st.columns([1, 1, 1])  # três colunas lado a lado
 
 with col1:
-    hora = st.number_input("Hora", min_value=0, max_value=99999, value=1)
+    dia = st.number_input("Dias", min_value=0, max_value=99999999, value=0)
 
 with col2:
+    hora = st.number_input("Hora", min_value=0, max_value=99999999, value=1)
+
+with col3:
     minuto = st.number_input("Minuto", min_value=0, max_value=59, value=0)
 
-tempo = hora * 60 + minuto
+tempo = dia * 24 * 60 + hora * 60 + minuto
 
-distancia = st.selectbox(
-    "x. Qual a faixa de distância de transporte em quilômetros? (*)",
-    ["Até 100", "100–300", "300–500", "500–1000", "Acima de 1000"],
-    key="distancia",
-)
-
-# Modos propostos para os cartões B
-modos_propostos = st.multiselect(
-    "Modo alternativo (*)",
-    modos_filtrados + ["Outro"],
-    key="modos_propostos",
-)
 
 modos_utilizados_img = [
     modos_opcoes_img[modo] for modo in modos_utilizados if modo in modos_opcoes_img
@@ -158,18 +137,22 @@ modos_propostos_img = [
 st.markdown("**Campos com (*) são obrigatórios.**")
 
 
+st.text(
+    "A seguir serão mostrados cenários hipotéticos de escolha de modo/rota e gostaria que o(a) sr.(a) informasse se escolheria a situação de transporte da opção A ou da opção B para transportar esse produto considerando custo, tempo, confiabilidade, segurança e capacidade."
+)
+
 # Cartões
 batch_list = [[1, 2, 3, 4, 5, 6, 7, 8, 9], [10, 11, 12, 13, 14, 15, 16, 17, 18]]
 
 # Verificar campos obrigatórios
 campos_ok = all(
     [
-        st.session_state.get("nome", "").strip() != "",
-        st.session_state.get("produto", "").strip() != "",
-        st.session_state.get("modos_utilizados", []) != [],
-        st.session_state.get("motivo_uso", "").strip() != "",
-        st.session_state.get("custo_atual", 0.0) != 0.0,
-        st.session_state.get("distancia", "").strip() != "",
+        nome != "",
+        produto != "",
+        modos_utilizados is not None,
+        modos_propostos is not None,
+        custo != 0.0,
+        tempo > 0,
     ]
 )
 
@@ -247,9 +230,11 @@ if st.session_state.iniciado:
             if row["Variável"] == "Custo":
                 return f"R$ {row['valores']:.2f} (Variação de {row['Nível']:.0%})"
             elif row["Variável"] == "Tempo":
-                nova_hora = int(row["valores"] // 60)
-                novo_minuto = int(row["valores"] % 60)
-                return f"{nova_hora} hora(s) e {novo_minuto} min (Variação de {row['Nível']:.0%})"
+                dias = int(row["valores"] // 1440)
+                resto = row["valores"] % 1440
+                horas = int(resto // 60)
+                minutos = int(resto % 60)
+                return f"{dias} dias, {horas} hora(s) e {minutos} min (Variação de {row['Nível']:.0%})"
             return row["valores"]
 
         option_i_data["valores"] = option_i_data.apply(formatar_nivel, axis=1)
@@ -377,16 +362,20 @@ if st.session_state.iniciado:
         # Variáveis para salvar no formulário
 
         df_resultado.insert(0, "Nome", nome)
-        df_resultado.insert(1, "Produto Principal", produto)
-        df_resultado.insert(2, "Modos Utilizados", ", ".join(modos_utilizados))
-        df_resultado.insert(3, "Outro Modo (se houver)", modo_outro)
-        df_resultado.insert(4, "Motivo Uso do Modo", motivo_uso)
-        df_resultado.insert(5, "Modos Não Usaria", ", ".join(modos_nao_usaria))
-        df_resultado.insert(6, "Outro Modo Não Usaria", nao_usaria_outro)
-        df_resultado.insert(7, "Motivo Não Usaria", motivo_nao_usaria)
-        df_resultado.insert(8, "Custo Atual", custo)
-        df_resultado.insert(9, "Distância", distancia)
-        df_resultado.insert(10, "Conjunto de Cartões", str(cartoes))
+        df_resultado.insert(1, "Produto", produto)
+        df_resultado.insert(
+            2, "Modo de Baixa Capacidade Utilizado", ", ".join(modos_utilizados)
+        )
+        df_resultado.insert(
+            2,
+            "Modo de Alta Capacidade Que Poderia Ser Utilizado",
+            ", ".join(modos_utilizados),
+        )
+        df_resultado.insert(3, "Modos Não Usaria", ", ".join(modos_nao_usaria))
+        df_resultado.insert(4, "Outro Modo Não Usaria", nao_usaria_outro)
+        df_resultado.insert(5, "Custo Total", custo)
+        df_resultado.insert(6, "Tempo de Deslocamento", tempo)
+        df_resultado.insert(7, "Conjunto de Cartões", str(cartoes))
 
         st.dataframe(df_resultado)
 
