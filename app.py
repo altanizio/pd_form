@@ -126,7 +126,7 @@ with col2:
     hora = st.number_input("Horas", min_value=0, max_value=99999999, value=0)
 
 with col3:
-    minuto = st.number_input("Minutos", min_value=0, max_value=59, value=0)
+    minuto = st.number_input("Minutos", min_value=0, max_value=99999999, value=0)
 
 tempo = dia * 24 * 60 + hora * 60 + minuto
 
