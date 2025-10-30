@@ -1,4 +1,8 @@
 streamlit
 pandas
+numpy
 openpyxl
 xlsxwriter
+PIL
+io
+base64
