@@ -114,6 +114,7 @@ if "Outro" in modos_nao_usaria:
         "4.1 - Qual outro modo você não usaria?", key="nao_usaria_outro"
     )
 
+motivo_nao_usaria = ""
 if len(modos_nao_usaria) > 0:
     motivo_nao_usaria = st.text_area(
         "4.2 - Por que você não usaria esse(s) modo(s)?", key="motivo_nao_usaria"
