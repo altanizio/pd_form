@@ -388,16 +388,16 @@ if st.session_state.iniciado:
             2, "Modo de Baixa Capacidade Utilizado", ", ".join(modos_utilizados)
         )
         df_resultado.insert(
-            2,
+            3,
             "Modo de Alta Capacidade Que Poderia Ser Utilizado",
-            ", ".join(modos_utilizados),
+            ", ".join(modos_propostos),
         )
-        df_resultado.insert(3, "Modos Não Usaria", ", ".join(modos_nao_usaria))
-        df_resultado.insert(4, "Outro Modo Não Usaria", nao_usaria_outro)
-        df_resultado.insert(5, "Motivo Não Usaria", motivo_nao_usaria)
-        df_resultado.insert(6, "Custo Total", custo)
-        df_resultado.insert(7, "Tempo de Deslocamento", tempo)
-        df_resultado.insert(8, "Conjunto de Cartões", str(cartoes))
+        df_resultado.insert(4, "Modos Não Usaria", ", ".join(modos_nao_usaria))
+        df_resultado.insert(5, "Outro Modo Não Usaria", nao_usaria_outro)
+        df_resultado.insert(6, "Motivo Não Usaria", motivo_nao_usaria)
+        df_resultado.insert(7, "Custo Total", custo)
+        df_resultado.insert(8, "Tempo de Deslocamento", tempo)
+        df_resultado.insert(9, "Conjunto de Cartões", str(cartoes))
 
         st.dataframe(df_resultado)
 
