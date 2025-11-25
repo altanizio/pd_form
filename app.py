@@ -19,17 +19,17 @@ st.set_page_config(
 # Leitura dos dados
 
 dados = pd.read_excel(
-    "experimento_rev02.xlsx", sheet_name="Codificação", skiprows=1, engine="openpyxl"
+    "experimento_rev03.xlsx", sheet_name="Codificação", skiprows=1, engine="openpyxl"
 )
 variaveis = dados.columns[1:9]
 colunas = list(dados.columns)
 colunas[1:] = variaveis
 dados.columns = colunas
-niveis = pd.read_excel("experimento_rev02.xlsx", sheet_name="Níveis")
+niveis = pd.read_excel("experimento_rev03.xlsx", sheet_name="Níveis")
 niveis["Variável"] = niveis["Variável"].ffill()
 
 niveis["Nível"] = niveis["Nível"].astype(str)
-niveis = niveis[["Variável", "Código", "Nível"]]
+niveis = niveis[["Variável", "Código", "Nível", "Tipo"]]
 
 # Formulário PD
 
@@ -39,7 +39,7 @@ editar = st.radio("Deseja editar os níveis?", ["Não", "Sim"], horizontal=True)
 if editar == "Sim":
     niveis = st.data_editor(
         niveis,
-        disabled=["Variável", "Código"],
+        disabled=["Variável", "Código", "Cor"],
         key="editor_niveis",
     )
 
@@ -248,7 +248,11 @@ if st.session_state.iniciado:
         def formatar_nivel(row):
             if row["Variável"] == "Custo":
                 row["Nível"] = float(row["Nível"])
-                return f"R$ {row['valores']:.2f} (Variação de {row['Nível']:.0%})"
+                return (
+                    f"R$ {row['valores']:.2f} (Variação de {row['Nível']:.0%})".replace(
+                        ".", ","
+                    )
+                )
             elif row["Variável"] == "Tempo":
                 row["Nível"] = float(row["Nível"])
                 dias = int(row["valores"] // 1440)
@@ -264,7 +268,13 @@ if st.session_state.iniciado:
             index="Variável", columns="option", values="valores"
         )
 
+        df_pivot_tipo = option_i_data.pivot(
+            index="Variável", columns="option", values="Tipo"
+        )
+
         df_pivot.fillna("como é atualmente", inplace=True)
+
+        df_pivot_tipo.fillna("igual", inplace=True)
 
         ordem_var = [
             "Modo",
@@ -279,6 +289,11 @@ if st.session_state.iniciado:
         )
         df_pivot = df_pivot.sort_index()
 
+        df_pivot_tipo.index = pd.Categorical(
+            df_pivot_tipo.index, categories=ordem_var, ordered=True
+        )
+        df_pivot_tipo = df_pivot_tipo.sort_index()
+
         map_index = {
             "Modo": "Modo",
             "Tempo": "Tempo de Viagem",
@@ -289,6 +304,8 @@ if st.session_state.iniciado:
         }
 
         df_pivot.index = df_pivot.index.map(map_index)
+
+        df_pivot_tipo.index = df_pivot_tipo.index.map(map_index)
 
         df_pivot.loc["Modo", "A"] = ", ".join(modos_utilizados)
 
@@ -312,8 +329,22 @@ if st.session_state.iniciado:
                     <h4 style='margin-top: 0;'>Opção A</h4>
             """
 
-            for idx, val in df_pivot["A"].items():
-                conteudo_a += f"<p><strong>{idx}:</strong> {val}</p>"
+            for (idx, val), (_, tipo) in zip(
+                df_pivot["A"].items(), df_pivot_tipo["A"].items()
+            ):
+                if tipo == "igual":
+                    conteudo_a += f"<p><strong>{idx}:</strong> {val}</p>"
+
+                elif tipo == "melhor":
+                    conteudo_a += (
+                        f"<p><strong>{idx}:</strong> "
+                        f"<span style='color:#5FA8D3'>{val}</span></p>"
+                    )
+                else:
+                    conteudo_a += (
+                        f"<p><strong>{idx}:</strong> "
+                        f"<span style='color:red'>{val}</span></p>"
+                    )
 
             conteudo_a += (
                 "</div><div style='display: flex; flex-direction: column; gap: 5px;'>"
@@ -332,8 +363,22 @@ if st.session_state.iniciado:
                     <h4 style='margin-top: 0;'>Opção B</h4>
             """
 
-            for idx, val in df_pivot["B"].items():
-                conteudo_b += f"<p><strong>{idx}:</strong> {val}</p>"
+            for (idx, val), (_, tipo) in zip(
+                df_pivot["B"].items(), df_pivot_tipo["B"].items()
+            ):
+                if tipo == "igual":
+                    conteudo_b += f"<p><strong>{idx}:</strong> {val}</p>"
+
+                elif tipo == "melhor":
+                    conteudo_b += (
+                        f"<p><strong>{idx}:</strong> "
+                        f"<span style='color:#5FA8D3'>{val}</span></p>"
+                    )
+                else:
+                    conteudo_b += (
+                        f"<p><strong>{idx}:</strong> "
+                        f"<span style='color:red'>{val}</span></p>"
+                    )
 
             conteudo_b += (
                 "</div><div style='display: flex; flex-direction: column; gap: 5px;'>"
