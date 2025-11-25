@@ -19,13 +19,13 @@ st.set_page_config(
 # Leitura dos dados
 
 dados = pd.read_excel(
-    "experimento_rev03.xlsx", sheet_name="Codificação", skiprows=1, engine="openpyxl"
+    "experimento_rev02.xlsx", sheet_name="Codificação", skiprows=1, engine="openpyxl"
 )
 variaveis = dados.columns[1:9]
 colunas = list(dados.columns)
 colunas[1:] = variaveis
 dados.columns = colunas
-niveis = pd.read_excel("experimento_rev03.xlsx", sheet_name="Níveis")
+niveis = pd.read_excel("experimento_rev02.xlsx", sheet_name="Níveis")
 niveis["Variável"] = niveis["Variável"].ffill()
 
 niveis["Nível"] = niveis["Nível"].astype(str)
